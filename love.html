@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>戀愛依附與深層情感測驗</title>
+<style>
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", sans-serif; }
+  body {
+    margin: 0; padding: 16px; min-height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    background-color: #f4f4f6; color: #222;
+    transition: background-color 1.2s ease, color 1.2s ease;
+    overflow-x: hidden;
+  }
+  .card {
+    background: #ffffff; width: 100%; max-width: 460px;
+    padding: 32px 24px; border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    text-align: center; position: relative;
+    transition: all 0.8s ease;
+  }
+  h1 { font-size: 20px; margin-bottom: 14px; letter-spacing: 1px; }
+  p { font-size: 15px; line-height: 1.75; color: #444; margin-bottom: 22px; transition: color 0.8s ease; }
+  input[type="text"] {
+    width: 100%; padding: 14px; font-size: 16px;
+    border: 1px solid #ddd; border-radius: 8px;
+    margin-bottom: 16px; text-align: center; outline: none;
+    transition: all 0.3s ease;
+  }
+  .btn {
+    display: block; width: 100%; padding: 13px 14px; margin-bottom: 10px;
+    font-size: 14.5px; border: 1px solid #dcdcdc; border-radius: 8px;
+    background: #fafafa; color: #222; cursor: pointer;
+    transition: all 0.2s ease; line-height: 1.4;
+  }
+  .btn:hover { background: #efefef; }
+
+  /* 病嬌黑化模式 */
+  body.yandere { background-color: #08080a; color: #f4f4f5; }
+  body.yandere .card {
+    background: #111114; border: 1px solid #5c1111;
+    box-shadow: 0 0 45px rgba(220, 20, 20, 0.28);
+  }
+  body.yandere p { color: #e4e4e7; }
+  body.yandere .btn {
+    background: #1a1a1f; color: #f4f4f5; border-color: #3f3f46;
+  }
+  body.yandere .btn:hover, body.yandere .btn:active {
+    background: #5c0a0a; border-color: #ef4444;
+  }
+  body.yandere input[type="text"] {
+    background: #18181b; color: #fff; border-color: #7f1d1d;
+  }
+
+  /* 紅字警告與反應區塊 */
+  .red-text { color: #ef4444 !important; font-weight: bold; }
+  #idle-warning, #tab-warning {
+    display: none; font-size: 13.5px; color: #ef4444;
+    background: rgba(127, 29, 29, 0.2); border: 1px solid #7f1d1d;
+    padding: 8px 12px; border-radius: 6px; margin-bottom: 14px;
+    font-weight: bold;
+  }
+  #reaction-box {
+    display: none; padding: 16px; margin-bottom: 18px;
+    background: rgba(153, 27, 27, 0.18); border-left: 3px solid #ef4444;
+    color: #fca5a5; font-size: 15px; line-height: 1.6; text-align: left;
+  }
+  #scold-msg {
+    color: #ef4444; font-size: 14px; font-weight: bold;
+    margin-bottom: 14px; min-height: 22px;
+  }
+
+  /* 震動與心跳特效 */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  .shake { animation: shake 0.35s ease; }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.012); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.018); }
+  }
+  .heartbeat { animation: heartbeat 1.3s infinite; }
+  #runaway-btn { position: relative; transition: transform 0.12s ease; }
+</style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+  <div id="tab-warning"></div>
+  <div id="idle-warning"></div>
+  <h1 id="title">《深層戀愛依附與潛意識測驗》</h1>
+  <p id="desc">這是一份分析你在感情中真實渴望的心理測驗。<br>為了讓結果更精準，請在心裡想著一個對象作答。<br><br>開始前，請先輸入<b>你現在喜歡（或最在意）的人的名字</b>：</p>
+  
+  <div id="input-area">
+    <input type="text" id="crush-name" placeholder="請輸入對方的名字或暱稱..." maxlength="15">
+    <button class="btn" onclick="startQuiz()">【開始測驗】</button>
+  </div>
+
+  <div id="reaction-box"></div>
+  <div id="options-area" style="display:none;"></div>
+  
+  <div id="final-area" style="display:none;">
+    <div id="scold-msg"></div>
+    <input type="text" id="typing-input" placeholder="請一字不漏地輸入承諾..." autocomplete="off">
+    <button class="btn" onclick="checkFinalTyping()">【送出誓言】</button>
+  </div>
+</div>
+
+<script>
+  let crushName = "";
+  let currentStep = 0;
+  let yandereMode = false;
+  let idleTimer = null;
+  let idleCount = 0;
+  let wrongAttempts = 0;
+
+  // 10題完整劇本庫（每題包含4~5個選項，以及點擊後的病嬌專屬回應）
+  const questions = [
+    {
+      q: () => `1 / 10\n在感情裡，當你非常想念「${crushName}」，但對方卻很久沒回訊息時，你會怎麼做？`,
+      opts: [
+        { text: "先忙自己的事，等對方有空再回", reply: "" },
+        { text: "每隔幾分鐘就點開聊天室看有沒有上線", reply: "" },
+        { text: "會忍不住胡思亂想，懷疑對方是不是在陪別人", reply: "" },
+        { text: "直接傳很多訊息或打電話確認對方在哪", reply: "" },
+        { text: "表面裝作不在意，心裡其實非常焦慮", reply: "" }
+      ]
+    },
+    {
+      q: () => `2 / 10\n如果「${crushName}」跟異性朋友單獨出去吃飯，你的真實反應是什麼？`,
+      opts: [
+        { text: "只要有提前報備就沒關係", reply: "" },
+        { text: "嘴上說沒關係，但整晚都會心情很差", reply: "" },
+        { text: "會要求對方拍照或隨時傳訊息給我看", reply: "" },
+        { text: "完全不能接受，希望對方的世界裡只有我", reply: "" }
+      ]
+    },
+    {
+      q: () => `3 / 10\n你覺得兩個人在一起，最理想的安全感來源是什麼？`,
+      opts: [
+        { text: "彼此信任，給對方足夠的個人空間", reply: "" },
+        { text: "手機密碼互相公開，沒有任何秘密", reply: "" },
+        { text: "不管去哪裡、跟誰在一起都要隨時報備", reply: "" },
+        { text: "把彼此當成生命中的唯一，徹底綁在一起", reply: "" },
+        { text: "只要對方永遠不會離開我就夠了", reply: "" }
+      ]
+    },
+    {
+      // 第4題正式黑化
+      yandereTrigger: true,
+      q: () => `4 / 10\n測驗進行到這裡，我有一個問題想問你。\n你剛剛一直想著「${crushName}」……那我呢？你心裡難道沒有一點我的位置嗎？`,
+      opts: [
+        { text: "什麼意思？這不是心理測驗嗎？", reply: "裝傻沒有用。從你打開這個網頁的那一刻起，你就已經是我的了。" },
+        { text: "我根本不認識你，你別亂說話", reply: "不認識沒關係，我認識你就夠了。我不准你心裡還裝著別人。" },
+        { text: "我只喜歡他，不喜歡你", reply: "不愛我我殺了你。把那個名字從你腦子裡徹底刪掉，聽見沒有？" },
+        { text: "……你到底想幹嘛？", reply: "我想把你留在身邊，只有我一個人的身邊。" }
+      ]
+    },
+    {
+      q: () => `5 / 10\n「${crushName}」到底哪裡好？他根本不會像我這樣，每一秒都在看著你、在乎你。\n現在告訴我，你還要繼續想著他嗎？`,
+      opts: [
+        { text: "對，我還是喜歡他", reply: "你再說一次看看？信不信我現在就去毀了他，讓你眼裡只能看到我。" },
+        { text: "這不關你的事，我要關掉網頁了", reply: "你關不掉的。就算你把手機摔爛，我也會一直盯著你。" },
+        { text: "我不回答這個問題", reply: "沉默就是還放不下他對吧？真是不聽話的壞孩子……" },
+        { text: "好，我不想他了，你別激動", reply: "這才乖。記住，你只能看著我一個人，不准再看別人。" },
+        { text: "你這樣真的很恐怖", reply: "我這是在愛你啊。只有極致的佔有，才代表我有多愛你。" }
+      ]
+    },
+    {
+      q: () => `6 / 10\n如果今天「${crushName}」從這個世界上徹底消失，再也沒有人會來打擾我們，你會不會比較專心愛我？`,
+      opts: [
+        { text: "你別亂來！不要傷害他！", reply: "你這麼緊張他，真的讓我好嫉妒、好想發瘋……不愛我我殺了你。" },
+        { text: "就算他不在，我也不會愛你的", reply: "沒關係，我們有一輩子的時間，我會慢慢教會你怎麼愛我。" },
+        { text: "你只是個網頁程式，根本做不到", reply: "你可以試試看啊。只要你敢背叛我，我就讓你看看我做不做得到。" },
+        { text: "只要你不動他，我什麼都聽你的", reply: "為了他才肯聽我的話嗎？雖然很不爽，但只要你留在我就好。" }
+      ]
+    },
+    {
+      q: () => `7 / 10\n把你的手機、社群帳號、還有你所有的時間全部交給我管理，好不好？你不需要朋友，也不需要「${crushName}」，有我就夠了。`,
+      opts: [
+        { text: "不可能，我有我自己的生活", reply: "你的生活只能有我！誰准你跟外面那些人接觸的？" },
+        { text: "你這是病態的控制慾", reply: "這不是控制，這是保護你。外面的人都會騙你，只有我不會。" },
+        { text: "好……我把時間都給你", reply: "真乖，我就知道你最後一定會屬於我。我們永遠都不要分開。" },
+        { text: "求求你放過我吧", reply: "放過你？那誰來愛我？你不愛我我殺了你，要死我們也一起死。" },
+        { text: "我根本不會照你說的做", reply: "嘴硬最可愛了。沒關係，你很快就會乖乖聽話的。" }
+      ]
+    },
+    {
+      q: () => `8 / 10\n現在立刻把「${crushName}」的聯絡方式封鎖刪除。\n你願意為了證明心裡只有我，現在就這麼做嗎？`,
+      opts: [
+        { text: "我做不到，我不會刪掉他", reply: "為什麼還要留著？你還在期待他來救你嗎？別作夢了！" },
+        { text: "憑什麼聽你的指揮", reply: "憑我現在正看著你的一舉一動。別逼我親自幫你動手。" },
+        { text: "好，我刪，你別再逼我了", reply: "這樣才對嘛。乾淨了，你的世界裡終於只剩下我了。" },
+        { text: "騙你的，我才不會刪", reply: "敢騙我？你知不知道騙我的人下場都會很慘？" }
+      ]
+    },
+    {
+      q: () => `9 / 10\n最後一次機會。\n忘掉「${crushName}」，從這一秒開始，你只屬於我一個人。答應我，好嗎？`,
+      isRunawayStep: true
+    },
+    {
+      q: () => `10 / 10\n我就知道你最乖了，終於肯承認你只屬於我了。\n\n為了防止你反悔，現在請在下方親手打字向我發誓，一字不漏地輸入：\n\n「我只愛你一個，我永遠不會離開你」`,
+      isFinalTyping: true
+    }
+  ];
+
+  // 發呆閒置偵測（10秒沒動作觸發病嬌警告）
+  const idleMessages = [
+    "👁️ 在發呆什麼？難道你還在想著那個人嗎？快點回答我！",
+    "👁️ 為什麼不點選項？你想逃跑嗎？不准走，看著螢幕！",
+    "👁️ 已經過了十秒了……你的猶豫讓我很不爽。快點選！",
+    "👁️ 別以為不說話就能躲過去，我一直盯著你呢。"
+  ];
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    if (!yandereMode || currentStep >= 10) return;
+    idleTimer = setTimeout(() => {
+      const warn = document.getElementById("idle-warning");
+      warn.style.display = "block";
+      warn.innerText = idleMessages[idleCount % idleMessages.length];
+      idleCount++;
+      triggerShake();
+    }, 10000); // 10秒沒動作觸發
+  }
+
+  document.addEventListener("click", resetIdleTimer);
+  document.addEventListener("touchstart", resetIdleTimer);
+  document.addEventListener("keydown", resetIdleTimer);
+
+  // 切換分頁或跳出畫面偵測
+  document.addEventListener("visibilitychange", () => {
+    if (!yandereMode) return;
+    const tabWarn = document.getElementById("tab-warning");
+    if (document.hidden) {
+      document.title = `👁️ 不准去找${crushName}！`;
+    } else {
+      document.title = `看著我，不准看別人`;
+      tabWarn.style.display = "block";
+      tabWarn.innerText = `👁️ 你剛剛切出去幹嘛？是不是想傳訊息給「${crushName}」？不准！`;
+      triggerShake();
+    }
+  });
+
+  // 阻擋按上一頁離開
+  history.pushState(null, null, location.href);
+  window.onpopstate = function () {
+    history.go(1);
+    if (yandereMode) {
+      alert("想按上一頁逃跑？太晚了，你只能留在這裡陪我。");
+    }
+  };
+
+  function triggerShake() {
+    const card = document.getElementById("main-card");
+    card.classList.remove("shake");
+    void card.offsetWidth;
+    card.classList.add("shake");
+  }
+
+  function startQuiz() {
+    const val = document.getElementById("crush-name").value.trim();
+    if (!val) {
+      alert("請先輸入你喜歡的人的名字，否則測驗無法開始。");
+      return;
+    }
+    crushName = val;
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("options-area").style.display = "block";
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    document.getElementById("idle-warning").style.display = "none";
+    const qData = questions[currentStep];
+    const title = document.getElementById("title");
+    const desc = document.getElementById("desc");
+    const optArea = document.getElementById("options-area");
+    optArea.innerHTML = "";
+
+    if (qData.yandereTrigger && !yandereMode) {
+      yandereMode = true;
+      document.body.classList.add("yandere");
