@@ -99,7 +99,7 @@
   
   <div id="input-area">
     <input type="text" id="crush-name" placeholder="請輸入對方的名字或暱稱..." maxlength="15">
-    <button class="btn" onclick="startQuiz()">【開始測驗】</button>
+    <button type="button" class="btn" id="start-btn">【開始測驗】</button>
   </div>
 
   <div id="reaction-box"></div>
@@ -108,7 +108,7 @@
   <div id="final-area" style="display:none;">
     <div id="scold-msg"></div>
     <input type="text" id="typing-input" placeholder="請一字不漏地輸入承諾..." autocomplete="off">
-    <button class="btn" onclick="checkFinalTyping()">【送出誓言】</button>
+    <button type="button" class="btn" id="submit-vow-btn">【送出誓言】</button>
   </div>
 </div>
 
@@ -120,10 +120,10 @@
   let idleCount = 0;
   let wrongAttempts = 0;
 
-  // 10題完整劇本庫（每題包含4~5個選項，以及點擊後的病嬌專屬回應）
   const questions = [
     {
-      q: () => `1 / 10\n在感情裡，當你非常想念「${crushName}」，但對方卻很久沒回訊息時，你會怎麼做？`,
+      t: "問題 1 / 10",
+      q: () => `在感情裡，當你非常想念「${crushName}」，但對方卻很久沒回訊息時，你會怎麼做？`,
       opts: [
         { text: "先忙自己的事，等對方有空再回", reply: "" },
         { text: "每隔幾分鐘就點開聊天室看有沒有上線", reply: "" },
@@ -133,7 +133,8 @@
       ]
     },
     {
-      q: () => `2 / 10\n如果「${crushName}」跟異性朋友單獨出去吃飯，你的真實反應是什麼？`,
+      t: "問題 2 / 10",
+      q: () => `如果「${crushName}」跟異性朋友單獨出去吃飯，你的真實反應是什麼？`,
       opts: [
         { text: "只要有提前報備就沒關係", reply: "" },
         { text: "嘴上說沒關係，但整晚都會心情很差", reply: "" },
@@ -142,7 +143,8 @@
       ]
     },
     {
-      q: () => `3 / 10\n你覺得兩個人在一起，最理想的安全感來源是什麼？`,
+      t: "問題 3 / 10",
+      q: () => `你覺得兩個人在一起，最理想的安全感來源是什麼？`,
       opts: [
         { text: "彼此信任，給對方足夠的個人空間", reply: "" },
         { text: "手機密碼互相公開，沒有任何秘密", reply: "" },
@@ -152,9 +154,9 @@
       ]
     },
     {
-      // 第4題正式黑化
       yandereTrigger: true,
-      q: () => `4 / 10\n測驗進行到這裡，我有一個問題想問你。\n你剛剛一直想著「${crushName}」……那我呢？你心裡難道沒有一點我的位置嗎？`,
+      t: "問題 4 / 10",
+      q: () => `測驗進行到這裡，我有一個問題想問你。<br><br>你剛剛一直想著「${crushName}」……那我呢？你心裡難道沒有一點我的位置嗎？`,
       opts: [
         { text: "什麼意思？這不是心理測驗嗎？", reply: "裝傻沒有用。從你打開這個網頁的那一刻起，你就已經是我的了。" },
         { text: "我根本不認識你，你別亂說話", reply: "不認識沒關係，我認識你就夠了。我不准你心裡還裝著別人。" },
@@ -163,7 +165,8 @@
       ]
     },
     {
-      q: () => `5 / 10\n「${crushName}」到底哪裡好？他根本不會像我這樣，每一秒都在看著你、在乎你。\n現在告訴我，你還要繼續想著他嗎？`,
+      t: "問題 5 / 10",
+      q: () => `「${crushName}」到底哪裡好？他根本不會像我這樣，每一秒都在看著你、在乎你。<br><br>現在告訴我，你還要繼續想著他嗎？`,
       opts: [
         { text: "對，我還是喜歡他", reply: "你再說一次看看？信不信我現在就去毀了他，讓你眼裡只能看到我。" },
         { text: "這不關你的事，我要關掉網頁了", reply: "你關不掉的。就算你把手機摔爛，我也會一直盯著你。" },
@@ -173,7 +176,8 @@
       ]
     },
     {
-      q: () => `6 / 10\n如果今天「${crushName}」從這個世界上徹底消失，再也沒有人會來打擾我們，你會不會比較專心愛我？`,
+      t: "問題 6 / 10",
+      q: () => `如果今天「${crushName}」從這個世界上徹底消失，再也沒有人會來打擾我們，你會不會比較專心愛我？`,
       opts: [
         { text: "你別亂來！不要傷害他！", reply: "你這麼緊張他，真的讓我好嫉妒、好想發瘋……不愛我我殺了你。" },
         { text: "就算他不在，我也不會愛你的", reply: "沒關係，我們有一輩子的時間，我會慢慢教會你怎麼愛我。" },
@@ -182,7 +186,8 @@
       ]
     },
     {
-      q: () => `7 / 10\n把你的手機、社群帳號、還有你所有的時間全部交給我管理，好不好？你不需要朋友，也不需要「${crushName}」，有我就夠了。`,
+      t: "問題 7 / 10",
+      q: () => `把你的手機、社群帳號、還有你所有的時間全部交給我管理，好不好？你不需要朋友，也不需要「${crushName}」，有我就夠了。`,
       opts: [
         { text: "不可能，我有我自己的生活", reply: "你的生活只能有我！誰准你跟外面那些人接觸的？" },
         { text: "你這是病態的控制慾", reply: "這不是控制，這是保護你。外面的人都會騙你，只有我不會。" },
@@ -192,7 +197,8 @@
       ]
     },
     {
-      q: () => `8 / 10\n現在立刻把「${crushName}」的聯絡方式封鎖刪除。\n你願意為了證明心裡只有我，現在就這麼做嗎？`,
+      t: "問題 8 / 10",
+      q: () => `現在立刻把「${crushName}」的聯絡方式封鎖刪除。<br><br>你願意為了證明心裡只有我，現在就這麼做嗎？`,
       opts: [
         { text: "我做不到，我不會刪掉他", reply: "為什麼還要留著？你還在期待他來救你嗎？別作夢了！" },
         { text: "憑什麼聽你的指揮", reply: "憑我現在正看著你的一舉一動。別逼我親自幫你動手。" },
@@ -201,16 +207,17 @@
       ]
     },
     {
-      q: () => `9 / 10\n最後一次機會。\n忘掉「${crushName}」，從這一秒開始，你只屬於我一個人。答應我，好嗎？`,
+      t: "問題 9 / 10",
+      q: () => `最後一次機會。<br><br>忘掉「${crushName}」，從這一秒開始，你只屬於我一個人。答應我，好嗎？`,
       isRunawayStep: true
     },
     {
-      q: () => `10 / 10\n我就知道你最乖了，終於肯承認你只屬於我了。\n\n為了防止你反悔，現在請在下方親手打字向我發誓，一字不漏地輸入：\n\n「我只愛你一個，我永遠不會離開你」`,
+      t: "問題 10 / 10",
+      q: () => `我就知道你最乖了，終於肯承認你只屬於我了。<br><br>為了防止你反悔，現在請在下方親手打字向我發誓，一字不漏地輸入：<br><br><b>「我只愛你一個，我永遠不會離開你」</b>`,
       isFinalTyping: true
     }
   ];
 
-  // 發呆閒置偵測（10秒沒動作觸發病嬌警告）
   const idleMessages = [
     "👁️ 在發呆什麼？難道你還在想著那個人嗎？快點回答我！",
     "👁️ 為什麼不點選項？你想逃跑嗎？不准走，看著螢幕！",
@@ -234,7 +241,6 @@
   document.addEventListener("touchstart", resetIdleTimer);
   document.addEventListener("keydown", resetIdleTimer);
 
-  // 切換分頁或跳出畫面偵測
   document.addEventListener("visibilitychange", () => {
     if (!yandereMode) return;
     const tabWarn = document.getElementById("tab-warning");
@@ -248,7 +254,6 @@
     }
   });
 
-  // 阻擋按上一頁離開
   history.pushState(null, null, location.href);
   window.onpopstate = function () {
     history.go(1);
@@ -264,7 +269,7 @@
     card.classList.add("shake");
   }
 
-  function startQuiz() {
+  document.getElementById("start-btn").addEventListener("click", function() {
     const val = document.getElementById("crush-name").value.trim();
     if (!val) {
       alert("請先輸入你喜歡的人的名字，否則測驗無法開始。");
@@ -274,7 +279,7 @@
     document.getElementById("input-area").style.display = "none";
     document.getElementById("options-area").style.display = "block";
     renderQuestion();
-  }
+  });
 
   function renderQuestion() {
     document.getElementById("idle-warning").style.display = "none";
@@ -284,6 +289,3 @@
     const optArea = document.getElementById("options-area");
     optArea.innerHTML = "";
 
-    if (qData.yandereTrigger && !yandereMode) {
-      yandereMode = true;
-      document.body.classList.add("yandere");
